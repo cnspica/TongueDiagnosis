@@ -1,14 +1,16 @@
 <script setup>
 import axios from "axios";
-import { ref, onMounted, watch, inject } from 'vue'
+import { ref, onMounted, watch } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
+import { useStateStore } from '@/stores/stateStore'
 
+const store = useStateStore()
 const router = useRouter()
 const route = useRoute()
 const activeIndex = ref('')
 const isAuthenticated = ref(false)
 const userInfo = ref({
-  name: 'Test User',
+  name: '',
   avatar: 'https://cube.elemecdn.com/3/7c/3ea6beec64369c2642b92c6726f1epng.png',
 })
 const isScrolled = ref(false)
@@ -21,32 +23,32 @@ const setActiveIndex = () => {
 const fetchUserInfo = async () => {
   const token = localStorage.getItem('token')
   if (!token) {
-    await router.push('/register')
+    await router.push('/login')
     return
   }
   try {
-    const res = await axios.get('/user/info', {
+    const res = await axios.get('/api/user/info', {
       headers: { Authorization: `Bearer ${token}` }
     })
     if (res.data.code === 0) {
       isAuthenticated.value = true
       if (res.data.data) {
-        userInfo.value = { ...userInfo.value, ...res.data.data }
+        // 后端 UserBase 只有 ID + email，无 name 字段
+        // 用 email 的 @ 前部分作为显示名
+        const data = res.data.data
+        const displayName = data.name || (data.email ? data.email.split('@')[0] : '用户')
+        userInfo.value = { ...userInfo.value, ...data, name: displayName }
       }
     }
   } catch (error) {
     console.error('authentication failure:', error)
     localStorage.removeItem('token')
-    await router.push('/register')
+    await router.push('/login')
   }
 }
 
 const handleSelect = (key) => {
-  const routes = {
-    1: '/home',
-    2: '/home',
-    3: '/check'
-  }
+  const routes = { 1: '/home', 2: '/home', 3: '/check' }
   if (routes[key]) {
     router.push(routes[key])
     isMobileMenuOpen.value = false
@@ -57,7 +59,7 @@ const logout = () => {
   localStorage.removeItem('token')
   isAuthenticated.value = false
   isMobileMenuOpen.value = false
-  router.push('/register')
+  router.push('/login')
 }
 
 const handleScroll = () => {
@@ -66,6 +68,10 @@ const handleScroll = () => {
 
 const toggleMobileMenu = () => {
   isMobileMenuOpen.value = !isMobileMenuOpen.value
+}
+
+const toggleLang = () => {
+  store.toggleLang()
 }
 
 onMounted(() => {
@@ -82,216 +88,170 @@ watch(() => route.path, () => {
 </script>
 
 <template>
-  <header class="modern-header" :class="{ 'scrolled': isScrolled }">
-    <div class="header-container">
-      <div class="logo-section">
+  <header class="tech-header" :class="{ scrolled: isScrolled }">
+    <div class="header-inner">
+      <!-- Logo -->
+      <div class="logo-area" @click="router.push('/home')">
         <div class="logo-icon">
-          <svg width="32" height="32" viewBox="0 0 24 24" fill="none">
-            <path d="M12 2L15.09 8.26L22 9L17 14.14L18.18 21.02L12 17.77L5.82 21.02L7 14.14L2 9L8.91 8.26L12 2Z"
-                  fill="currentColor"/>
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
+            <path d="M12 2L15.09 8.26L22 9L17 14.14L18.18 21.02L12 17.77L5.82 21.02L7 14.14L2 9L8.91 8.26L12 2Z" fill="currentColor"/>
           </svg>
         </div>
         <div class="logo-text">
-          <span class="logo-title">TongueKit</span>
-          <span class="logo-subtitle">AI Diagnosis</span>
+          <span class="logo-name">{{ store.t('appTitle') }}</span>
+          <span class="logo-sub">{{ store.t('appSubtitle') }}</span>
         </div>
       </div>
+
+      <!-- Desktop Nav -->
       <nav class="desktop-nav">
-        <div class="nav-items">
-          <router-link
-              to="/home"
-              class="nav-item"
-              :class="{ 'active': activeIndex === '2' }"
-          >
-            <div class="nav-icon">
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
-                <path d="M3 9L12 2L21 9V20C21 20.5304 20.7893 21.0391 20.4142 21.4142C20.0391 21.7893 19.5304 22 19 22H5C4.46957 22 3.96086 21.7893 3.58579 21.4142C3.21071 21.0391 3 20.5304 3 20V9Z"
-                      stroke="currentColor" stroke-width="2"/>
-                <path d="M9 22V12H15V22" stroke="currentColor" stroke-width="2"/>
-              </svg>
-            </div>
-            <span>Home</span>
-          </router-link>
-          <router-link
-              to="/check"
-              class="nav-item"
-              :class="{ 'active': activeIndex === '3' }"
-          >
-            <div class="nav-icon">
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
-                <path d="M9 12L11 14L15 10M21 12C21 16.9706 16.9706 21 12 21C7.02944 21 3 16.9706 3 12C3 7.02944 7.02944 3 12 3C16.9706 3 21 7.02944 21 12Z"
-                      stroke="currentColor" stroke-width="2"/>
-              </svg>
-            </div>
-            <span>Examination</span>
-          </router-link>
-        </div>
+        <router-link to="/home" class="nav-link" :class="{ active: activeIndex === '2' }">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
+            <path d="M3 9L12 2L21 9V20C21 20.5304 20.7893 21.0391 20.4142 21.4142C20.0391 21.7893 19.5304 22 19 22H5C4.46957 22 3.96086 21.7893 3.58579 21.4142C3.21071 21.0391 3 20.5304 3 20V9Z" stroke="currentColor" stroke-width="2"/>
+            <path d="M9 22V12H15V22" stroke="currentColor" stroke-width="2"/>
+          </svg>
+          <span>{{ store.t('navHome') }}</span>
+        </router-link>
+        <router-link to="/check" class="nav-link" :class="{ active: activeIndex === '3' }">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
+            <path d="M9 12L11 14L15 10M21 12C21 16.9706 16.9706 21 12 21C7.02944 21 3 16.9706 3 12C3 7.02944 7.02944 3 12 3C16.9706 3 21 7.02944 21 12Z" stroke="currentColor" stroke-width="2"/>
+          </svg>
+          <span>{{ store.t('navCheck') }}</span>
+        </router-link>
       </nav>
-      <div class="user-section">
-        <div v-if="isAuthenticated" class="user-menu">
-          <el-dropdown trigger="click" popper-class="custom-dropdown">
-            <div class="user-profile">
-              <div class="user-avatar">
-                <img :src="userInfo.avatar" :alt="userInfo.name" />
-                <div class="user-status"></div>
-              </div>
-              <div class="user-info">
-                <span class="user-name">{{ userInfo.name }}</span>
-                <span class="user-role">Premium User</span>
-              </div>
-              <div class="dropdown-arrow">
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
-                  <path d="M6 9L12 15L18 9" stroke="currentColor" stroke-width="2"/>
-                </svg>
-              </div>
+
+      <!-- 右侧：语言切换 + 用户 -->
+      <div class="header-right">
+        <button class="lang-btn" @click="toggleLang" :title="store.isZh ? 'Switch to English' : '切换为中文'">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
+            <path d="M12 22C17.5228 22 22 17.5228 22 12C22 6.47715 17.5228 2 12 2C6.47715 2 2 6.47715 2 12C2 17.5228 6.47715 22 12 22Z" stroke="currentColor" stroke-width="2"/>
+            <path d="M2 12H22M12 2C14.5013 4.73835 15.9228 8.29203 16 12C15.9228 15.708 14.5013 19.2616 12 22C9.49872 19.2616 8.07725 15.708 8 12C8.07725 8.29203 9.49872 4.73835 12 2Z" stroke="currentColor" stroke-width="2"/>
+          </svg>
+          <span>{{ store.t('langSwitch') }}</span>
+        </button>
+
+        <div v-if="isAuthenticated" class="user-area">
+          <el-dropdown trigger="click" popper-class="tech-dropdown">
+            <div class="user-trigger">
+              <img :src="userInfo.avatar" :alt="userInfo.name" class="user-avatar" />
+              <span class="user-name">{{ userInfo.name }}</span>
             </div>
             <template #dropdown>
-              <el-dropdown-menu class="custom-dropdown-menu">
-                <el-dropdown-item class="dropdown-header">
-                  <div class="user-card">
-                    <img :src="userInfo.avatar" :alt="userInfo.name" class="user-card-avatar" />
-                    <div class="user-card-info">
-                      <div class="user-card-name">{{ userInfo.name }}</div>
-                      <div class="user-card-email">{{ userInfo.email }}</div>
+              <el-dropdown-menu>
+                <el-dropdown-item disabled>
+                  <div class="dropdown-user-card">
+                    <img :src="userInfo.avatar" :alt="userInfo.name" />
+                    <div>
+                      <div class="du-name">{{ userInfo.name }}</div>
+                      <div class="du-role">{{ store.t('registeredUser') }}</div>
                     </div>
                   </div>
                 </el-dropdown-item>
-                <el-dropdown-item divided class="menu-item danger" @click="logout">
-                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
-                    <path d="M9 21H5C4.46957 21 3.96086 20.7893 3.58579 20.4142C3.21071 20.0391 3 19.5304 3 19V5C3 4.46957 3.21071 3.96086 3.58579 3.58579C3.96086 3.21071 4.46957 3 5 3H9M16 17L21 12M21 12L16 7M21 12H9"
-                          stroke="currentColor" stroke-width="2"/>
+                <el-dropdown-item divided @click="logout" class="logout-item">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none">
+                    <path d="M9 21H5C4.46957 21 3.96086 20.7893 3.58579 20.4142C3.21071 20.0391 3 19.5304 3 19V5C3 4.46957 3.21071 3.96086 3.58579 3.58579C3.96086 3.21071 4.46957 3 5 3H9M16 17L21 12M21 12L16 7M21 12H9" stroke="currentColor" stroke-width="2"/>
                   </svg>
-                  <span>Logout</span>
+                  <span>{{ store.t('logout') }}</span>
                 </el-dropdown-item>
               </el-dropdown-menu>
             </template>
           </el-dropdown>
         </div>
-        <div v-else class="auth-buttons">
-          <router-link to="/register" class="auth-button">
-            <span>Sign In</span>
-          </router-link>
+        <div v-else class="auth-area">
+          <router-link to="/login" class="login-btn">{{ store.t('login') }}</router-link>
         </div>
-        <button class="mobile-menu-button" @click="toggleMobileMenu">
-          <svg v-if="!isMobileMenuOpen" width="24" height="24" viewBox="0 0 24 24" fill="none">
+
+        <button class="mobile-btn" @click="toggleMobileMenu">
+          <svg v-if="!isMobileMenuOpen" width="22" height="22" viewBox="0 0 24 24" fill="none">
             <path d="M3 12H21M3 6H21M3 18H21" stroke="currentColor" stroke-width="2"/>
           </svg>
-          <svg v-else width="24" height="24" viewBox="0 0 24 24" fill="none">
+          <svg v-else width="22" height="22" viewBox="0 0 24 24" fill="none">
             <path d="M18 6L6 18M6 6L18 18" stroke="currentColor" stroke-width="2"/>
           </svg>
         </button>
       </div>
     </div>
-    <div class="mobile-menu" :class="{ 'open': isMobileMenuOpen }">
-      <div class="mobile-nav">
-        <router-link
-            to="/home"
-            class="mobile-nav-item"
-            :class="{ 'active': activeIndex === '2' }"
-            @click="isMobileMenuOpen = false"
-        >
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
-            <path d="M3 9L12 2L21 9V20C21 20.5304 20.7893 21.0391 20.4142 21.4142C20.0391 21.7893 19.5304 22 19 22H5C4.46957 22 3.96086 21.7893 3.58579 21.4142C3.21071 21.0391 3 20.5304 3 20V9Z"
-                  stroke="currentColor" stroke-width="2"/>
-            <path d="M9 22V12H15V22" stroke="currentColor" stroke-width="2"/>
-          </svg>
-          <span>Home</span>
-        </router-link>
-        <router-link
-            to="/check"
-            class="mobile-nav-item"
-            :class="{ 'active': activeIndex === '3' }"
-            @click="isMobileMenuOpen = false"
-        >
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
-            <path d="M9 12L11 14L15 10M21 12C21 16.9706 16.9706 21 12 21C7.02944 21 3 16.9706 3 12C3 7.02944 7.02944 3 12 3C16.9706 3 21 7.02944 21 12Z"
-                  stroke="currentColor" stroke-width="2"/>
-          </svg>
-          <span>Examination</span>
-        </router-link>
-        <div v-if="isAuthenticated" class="mobile-user-section">
-          <div class="mobile-user-profile">
-            <img :src="userInfo.avatar" :alt="userInfo.name" />
-            <div class="mobile-user-info">
-              <span class="mobile-user-name">{{ userInfo.name }}</span>
-              <span class="mobile-user-role">Premium User</span>
-            </div>
-          </div>
-          <div class="mobile-user-actions">
-            <button class="mobile-action-item">
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
-                <path d="M20 21V19C20 17.9391 19.5786 16.9217 18.8284 16.1716C18.0783 15.4214 17.0609 15 16 15H8C6.93913 15 5.92172 15.4214 5.17157 16.1716C4.42143 16.9217 4 17.9391 4 19V21M16 7C16 9.20914 14.2091 11 12 11C9.79086 11 8 9.20914 8 7C8 4.79086 9.79086 3 12 3C14.2091 3 16 4.79086 16 7Z"
-                      stroke="currentColor" stroke-width="2"/>
-              </svg>
-              <span>Profile</span>
-            </button>
-            <button class="mobile-action-item" @click="logout">
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
-                <path d="M9 21H5C4.46957 21 3.96086 20.7893 3.58579 20.4142C3.21071 20.0391 3 19.5304 3 19V5C3 4.46957 3.21071 3.96086 3.58579 3.58579C3.96086 3.21071 4.46957 3 5 3H9M16 17L21 12M21 12L16 7M21 12H9"
-                      stroke="currentColor" stroke-width="2"/>
-              </svg>
-              <span>Logout</span>
-            </button>
-          </div>
+
+    <!-- 移动端菜单 -->
+    <div class="mobile-menu" :class="{ open: isMobileMenuOpen }">
+      <router-link to="/home" class="mobile-link" :class="{ active: activeIndex === '2' }" @click="isMobileMenuOpen = false">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
+          <path d="M3 9L12 2L21 9V20C21 20.5304 20.7893 21.0391 20.4142 21.4142C20.0391 21.7893 19.5304 22 19 22H5C4.46957 22 3.96086 21.7893 3.58579 21.4142C3.21071 21.0391 3 20.5304 3 20V9Z" stroke="currentColor" stroke-width="2"/>
+          <path d="M9 22V12H15V22" stroke="currentColor" stroke-width="2"/>
+        </svg>
+        <span>{{ store.t('navHome') }}</span>
+      </router-link>
+      <router-link to="/check" class="mobile-link" :class="{ active: activeIndex === '3' }" @click="isMobileMenuOpen = false">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
+          <path d="M9 12L11 14L15 10M21 12C21 16.9706 16.9706 21 12 21C7.02944 21 3 16.9706 3 12C3 7.02944 7.02944 3 12 3C16.9706 3 21 7.02944 21 12Z" stroke="currentColor" stroke-width="2"/>
+        </svg>
+        <span>{{ store.t('navCheck') }}</span>
+      </router-link>
+      <button class="mobile-lang-btn" @click="toggleLang">
+        🌐 {{ store.t('langSwitch') }}
+      </button>
+      <div v-if="isAuthenticated" class="mobile-user">
+        <div class="mobile-user-info">
+          <img :src="userInfo.avatar" />
+          <span>{{ userInfo.name }}</span>
         </div>
-        <div v-else class="mobile-auth">
-          <router-link to="/register" class="mobile-auth-button" @click="isMobileMenuOpen = false">
-            Sign In / Register
-          </router-link>
-        </div>
+        <button class="mobile-logout" @click="logout">{{ store.t('logout') }}</button>
+      </div>
+      <div v-else class="mobile-auth">
+        <router-link to="/login" class="mobile-login" @click="isMobileMenuOpen = false">{{ store.t('login') }}</router-link>
       </div>
     </div>
   </header>
 </template>
 
 <style scoped>
-.modern-header {
+.tech-header {
   position: fixed;
   top: 0;
   left: 0;
   right: 0;
   z-index: 1000;
-  background: rgba(255, 255, 255, 0.9);
+  background: rgba(10, 14, 26, 0.85);
   backdrop-filter: blur(20px);
-  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
-  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-  padding: 0;
-  box-shadow: 0 2px 20px rgba(0, 0, 0, 0.05);
+  border-bottom: 1px solid rgba(99, 179, 237, 0.08);
+  transition: all 0.3s ease;
+  height: 64px;
 }
 
-.modern-header.scrolled {
-  background: rgba(255, 255, 255, 0.95);
-  backdrop-filter: blur(25px);
-  box-shadow: 0 4px 32px rgba(0, 0, 0, 0.1);
+.tech-header.scrolled {
+  background: rgba(10, 14, 26, 0.95);
+  border-bottom-color: rgba(99, 179, 237, 0.15);
+  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.3);
 }
 
-.header-container {
+.header-inner {
   max-width: 1400px;
   margin: 0 auto;
   padding: 0 24px;
-  height: 72px;
+  height: 64px;
   display: flex;
   align-items: center;
   justify-content: space-between;
 }
 
-.logo-section {
+/* Logo */
+.logo-area {
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: 10px;
   cursor: pointer;
 }
 
 .logo-icon {
-  width: 40px;
-  height: 40px;
-  background: linear-gradient(45deg, #667eea 0%, #764ba2 100%);
-  border-radius: 12px;
+  width: 36px;
+  height: 36px;
+  background: linear-gradient(135deg, #4f8ef7, #6c5ce7);
+  border-radius: 10px;
   display: flex;
   align-items: center;
   justify-content: center;
   color: white;
-  box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
+  box-shadow: 0 2px 12px rgba(79, 142, 247, 0.3);
 }
 
 .logo-text {
@@ -299,181 +259,138 @@ watch(() => route.path, () => {
   flex-direction: column;
 }
 
-.logo-title {
-  font-size: 1.25rem;
+.logo-name {
+  font-size: 1.1rem;
   font-weight: 700;
-  color: #2c3e50;
+  color: #f0f4ff;
   line-height: 1;
 }
 
-.logo-subtitle {
-  font-size: 0.75rem;
-  color: #667eea;
+.logo-sub {
+  font-size: 0.7rem;
+  color: #63b3ed;
   font-weight: 500;
-  line-height: 1;
 }
 
-/* 桌面导航 */
+/* Desktop Nav */
 .desktop-nav {
-  flex: 1;
   display: flex;
-  justify-content: center;
-}
-
-.nav-items {
-  display: flex;
-  gap: 8px;
-  background: rgba(102, 126, 234, 0.1);
-  backdrop-filter: blur(10px);
-  border-radius: 16px;
-  padding: 6px;
-}
-
-.nav-item {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  padding: 12px 20px;
+  gap: 6px;
+  background: rgba(99, 179, 237, 0.06);
   border-radius: 12px;
+  padding: 4px;
+}
+
+.nav-link {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 16px;
+  border-radius: 10px;
   text-decoration: none;
-  color: #5a6c7d;
+  color: rgba(224, 230, 240, 0.6);
+  font-size: 0.9rem;
   font-weight: 500;
-  font-size: 0.95rem;
-  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-  position: relative;
-  overflow: hidden;
-}
-
-.nav-item:hover {
-  color: #667eea;
-  background: rgba(255, 255, 255, 0.8);
-  transform: translateY(-1px);
-}
-
-.nav-item.active {
-  color: white;
-  background: linear-gradient(45deg, #667eea 0%, #764ba2 100%);
-  box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
-}
-
-.nav-icon {
-  display: flex;
-  align-items: center;
-}
-
-.user-section {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-}
-
-.user-profile {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  padding: 8px 12px;
-  border-radius: 16px;
-  cursor: pointer;
   transition: all 0.3s ease;
-  background: rgba(255, 255, 255, 0.8);
-  backdrop-filter: blur(10px);
-  border: 1px solid rgba(255, 255, 255, 0.2);
 }
 
-.user-profile:hover {
-  background: rgba(255, 255, 255, 0.95);
-  transform: translateY(-1px);
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+.nav-link:hover {
+  color: #63b3ed;
+  background: rgba(99, 179, 237, 0.08);
+}
+
+.nav-link.active {
+  color: white;
+  background: linear-gradient(135deg, #4f8ef7, #6c5ce7);
+  box-shadow: 0 2px 12px rgba(79, 142, 247, 0.3);
+}
+
+/* Header Right */
+.header-right {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.lang-btn {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  border-radius: 8px;
+  border: 1px solid rgba(99, 179, 237, 0.2);
+  background: rgba(99, 179, 237, 0.05);
+  color: #63b3ed;
+  font-size: 0.8rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.lang-btn:hover {
+  background: rgba(99, 179, 237, 0.12);
+  border-color: rgba(99, 179, 237, 0.35);
+}
+
+/* User */
+.user-trigger {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 4px 10px 4px 4px;
+  border-radius: 10px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  border: 1px solid rgba(99, 179, 237, 0.1);
+}
+
+.user-trigger:hover {
+  background: rgba(99, 179, 237, 0.08);
 }
 
 .user-avatar {
-  position: relative;
-  width: 36px;
-  height: 36px;
-}
-
-.user-avatar img {
-  width: 100%;
-  height: 100%;
+  width: 32px;
+  height: 32px;
   border-radius: 50%;
   object-fit: cover;
-}
-
-.user-status {
-  position: absolute;
-  bottom: 0;
-  right: 0;
-  width: 10px;
-  height: 10px;
-  background: #27AE60;
-  border-radius: 50%;
-  border: 2px solid white;
-}
-
-.user-info {
-  display: flex;
-  flex-direction: column;
+  border: 2px solid rgba(99, 179, 237, 0.3);
 }
 
 .user-name {
-  font-size: 0.9rem;
+  font-size: 0.85rem;
   font-weight: 600;
-  color: #2c3e50;
-  line-height: 1;
+  color: #e0e6f0;
 }
 
-.user-role {
-  font-size: 0.75rem;
-  color: #667eea;
-  line-height: 1;
-}
-
-.dropdown-arrow {
-  display: flex;
-  align-items: center;
-  color: #8b95a1;
-  transition: transform 0.3s ease;
-}
-
-.user-profile:hover .dropdown-arrow {
-  transform: rotate(180deg);
-}
-
-.auth-button {
-  padding: 10px 20px;
-  background: linear-gradient(45deg, #667eea 0%, #764ba2 100%);
+.login-btn {
+  padding: 8px 18px;
+  background: linear-gradient(135deg, #4f8ef7, #6c5ce7);
   color: white;
   text-decoration: none;
-  border-radius: 12px;
-  font-weight: 500;
-  font-size: 0.9rem;
+  border-radius: 10px;
+  font-weight: 600;
+  font-size: 0.85rem;
   transition: all 0.3s ease;
-  box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
+  box-shadow: 0 2px 12px rgba(79, 142, 247, 0.3);
 }
 
-.auth-button:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 6px 16px rgba(102, 126, 234, 0.4);
+.login-btn:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 20px rgba(79, 142, 247, 0.4);
 }
 
-.mobile-menu-button {
+/* Mobile */
+.mobile-btn {
   display: none;
   align-items: center;
   justify-content: center;
-  width: 40px;
-  height: 40px;
-  background: rgba(255, 255, 255, 0.8);
-  backdrop-filter: blur(10px);
-  border: 1px solid rgba(255, 255, 255, 0.2);
-  border-radius: 10px;
-  color: #667eea;
+  width: 36px;
+  height: 36px;
+  border-radius: 8px;
+  border: 1px solid rgba(99, 179, 237, 0.15);
+  background: transparent;
+  color: #63b3ed;
   cursor: pointer;
-  transition: all 0.3s ease;
-}
-
-.mobile-menu-button:hover {
-  background: rgba(255, 255, 255, 0.95);
-  transform: translateY(-1px);
 }
 
 .mobile-menu {
@@ -481,14 +398,14 @@ watch(() => route.path, () => {
   top: 100%;
   left: 0;
   right: 0;
-  background: rgba(255, 255, 255, 0.95);
+  background: rgba(10, 14, 26, 0.98);
   backdrop-filter: blur(25px);
-  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  border-bottom: 1px solid rgba(99, 179, 237, 0.1);
+  padding: 20px;
   transform: translateY(-100%);
   opacity: 0;
   visibility: hidden;
-  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+  transition: all 0.3s ease;
 }
 
 .mobile-menu.open {
@@ -497,220 +414,155 @@ watch(() => route.path, () => {
   visibility: visible;
 }
 
-.mobile-nav {
-  padding: 24px;
-}
-
-.mobile-nav-item {
+.mobile-link {
   display: flex;
   align-items: center;
-  gap: 12px;
-  padding: 16px;
-  color: #5a6c7d;
+  gap: 10px;
+  padding: 14px 16px;
+  color: rgba(224, 230, 240, 0.7);
   text-decoration: none;
   font-weight: 500;
-  border-radius: 12px;
-  margin-bottom: 8px;
-  transition: all 0.3s ease;
+  border-radius: 10px;
+  margin-bottom: 6px;
+  transition: all 0.2s ease;
 }
 
-.mobile-nav-item:hover,
-.mobile-nav-item.active {
-  background: linear-gradient(45deg, #667eea 0%, #764ba2 100%);
-  color: white;
+.mobile-link:hover, .mobile-link.active {
+  background: linear-gradient(135deg, rgba(79, 142, 247, 0.15), rgba(108, 92, 231, 0.15));
+  color: #63b3ed;
 }
 
-.mobile-user-section {
-  margin-top: 24px;
-  padding-top: 24px;
-  border-top: 1px solid rgba(0, 0, 0, 0.1);
+.mobile-lang-btn {
+  width: 100%;
+  padding: 12px;
+  border: 1px solid rgba(99, 179, 237, 0.15);
+  border-radius: 10px;
+  background: rgba(99, 179, 237, 0.05);
+  color: #63b3ed;
+  font-size: 0.9rem;
+  cursor: pointer;
+  margin: 8px 0;
 }
 
-.mobile-user-profile {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  padding: 16px;
-  background: rgba(255, 255, 255, 0.8);
-  border-radius: 12px;
-  margin-bottom: 16px;
-}
-
-.mobile-user-profile img {
-  width: 40px;
-  height: 40px;
-  border-radius: 50%;
-  object-fit: cover;
+.mobile-user {
+  padding-top: 12px;
+  border-top: 1px solid rgba(99, 179, 237, 0.1);
+  margin-top: 8px;
 }
 
 .mobile-user-info {
   display: flex;
-  flex-direction: column;
-}
-
-.mobile-user-name {
-  font-weight: 600;
-  color: #2c3e50;
-}
-
-.mobile-user-role {
-  font-size: 0.8rem;
-  color: #667eea;
-}
-
-.mobile-user-actions {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-}
-
-.mobile-action-item {
-  display: flex;
   align-items: center;
-  gap: 12px;
-  padding: 14px 16px;
-  background: transparent;
-  border: none;
-  border-radius: 10px;
-  color: #5a6c7d;
-  font-weight: 500;
-  cursor: pointer;
-  transition: all 0.3s ease;
-  text-align: left;
+  gap: 10px;
+  margin-bottom: 10px;
 }
 
-.mobile-action-item:hover {
-  background: rgba(102, 126, 234, 0.1);
-  color: #667eea;
+.mobile-user-info img {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
 }
 
-.mobile-auth-button {
-  display: block;
+.mobile-user-info span {
+  color: #e0e6f0;
+  font-weight: 600;
+}
+
+.mobile-logout {
   width: 100%;
-  padding: 16px;
-  background: linear-gradient(45deg, #667eea 0%, #764ba2 100%);
+  padding: 12px;
+  border: 1px solid rgba(239, 68, 68, 0.2);
+  border-radius: 10px;
+  background: rgba(239, 68, 68, 0.05);
+  color: #ef4444;
+  cursor: pointer;
+}
+
+.mobile-login {
+  display: block;
+  text-align: center;
+  padding: 14px;
+  background: linear-gradient(135deg, #4f8ef7, #6c5ce7);
   color: white;
   text-decoration: none;
-  border-radius: 12px;
-  font-weight: 500;
-  text-align: center;
-  margin-top: 16px;
+  border-radius: 10px;
+  font-weight: 600;
+  margin-top: 10px;
 }
 
 @media (max-width: 1024px) {
-  .desktop-nav {
-    display: none;
-  }
-
-  .mobile-menu-button {
-    display: flex;
-  }
-
-  .user-info {
-    display: none;
-  }
-
-  .logo-text {
-    display: none;
-  }
+  .desktop-nav { display: none; }
+  .mobile-btn { display: flex; }
+  .logo-text { display: none; }
+  .user-name { display: none; }
 }
 
 @media (max-width: 768px) {
-  .header-container {
-    padding: 0 16px;
-    height: 64px;
-  }
-
-  .logo-icon {
-    width: 36px;
-    height: 36px;
-  }
-
-  .mobile-nav {
-    padding: 20px 16px;
-  }
+  .header-inner { padding: 0 16px; }
 }
 </style>
 
 <style>
-.custom-dropdown {
-  border-radius: 16px !important;
-  border: none !important;
-  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.15) !important;
-  background: rgba(255, 255, 255, 0.95) !important;
-  backdrop-filter: blur(25px) !important;
-  padding: 8px !important;
-  margin-top: 8px !important;
+/* Dropdown (unscoped) */
+.tech-dropdown {
+  background: rgba(13, 17, 23, 0.98) !important;
+  border: 1px solid rgba(99, 179, 237, 0.15) !important;
+  border-radius: 14px !important;
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.5) !important;
+  padding: 6px !important;
 }
 
-.custom-dropdown-menu .el-dropdown-menu__item {
-  border-radius: 12px !important;
-  margin-bottom: 4px !important;
+.tech-dropdown .el-dropdown-menu__item {
+  border-radius: 10px !important;
+  color: #e0e6f0 !important;
   padding: 0 !important;
   background: transparent !important;
-  color: inherit !important;
-  line-height: normal !important;
 }
 
-.custom-dropdown-menu .el-dropdown-menu__item:hover {
-  background: rgba(102, 126, 234, 0.1) !important;
+.tech-dropdown .el-dropdown-menu__item:hover {
+  background: rgba(99, 179, 237, 0.08) !important;
 }
 
-.dropdown-header {
-  padding: 16px !important;
-  background: transparent !important;
+.tech-dropdown .el-dropdown-menu__item.is-disabled {
+  opacity: 1 !important;
+  cursor: default !important;
 }
 
-.user-card {
+.dropdown-user-card {
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: 10px;
+  padding: 10px;
 }
 
-.user-card-avatar {
-  width: 48px;
-  height: 48px;
+.dropdown-user-card img {
+  width: 40px;
+  height: 40px;
   border-radius: 50%;
   object-fit: cover;
+  border: 2px solid rgba(99, 179, 237, 0.3);
 }
 
-.user-card-info {
-  display: flex;
-  flex-direction: column;
-}
-
-.user-card-name {
+.du-name {
   font-weight: 600;
-  color: #2c3e50;
-  font-size: 1rem;
+  color: #f0f4ff;
+  font-size: 0.95rem;
 }
 
-.user-card-email {
-  font-size: 0.875rem;
-  color: #8b95a1;
+.du-role {
+  font-size: 0.8rem;
+  color: #63b3ed;
 }
 
-.menu-item {
+.logout-item {
   display: flex !important;
   align-items: center !important;
-  gap: 12px !important;
-  padding: 12px 16px !important;
-  color: #5a6c7d !important;
-  font-weight: 500 !important;
-  cursor: pointer !important;
-  transition: all 0.3s ease !important;
+  gap: 8px !important;
+  padding: 10px 12px !important;
+  color: #ef4444 !important;
 }
 
-.menu-item:hover {
-  color: #667eea !important;
-}
-
-.menu-item.danger {
-  color: #e74c3c !important;
-}
-
-.menu-item.danger:hover {
-  color: #c0392b !important;
-  background: rgba(231, 76, 60, 0.1) !important;
+.logout-item:hover {
+  background: rgba(239, 68, 68, 0.08) !important;
 }
 </style>

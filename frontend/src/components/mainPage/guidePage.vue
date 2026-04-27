@@ -1,6 +1,8 @@
 <script setup>
 import {ref} from 'vue'
+import { useStateStore } from '@/stores/stateStore'
 
+const store = useStateStore()
 const showWelcome = ref(true)
 const guideText = ref('')
 
@@ -16,204 +18,134 @@ defineExpose({handleChatStart, changeGuideText})
 </script>
 
 <template>
-  <div class="main-container">
-    <div v-if="showWelcome" class="welcome-container">
-      <div class="content-wrapper">
-        <div class="icon-box">
-          <img src="@\assets\Chat_Tongue.webp" alt="" class="fas fa-comment-medical floating-icon"
-               style="height: 20vh;border-radius: 50%;">
+  <div class="guide-container">
+    <div v-if="showWelcome" class="welcome-screen">
+      <div class="glow-ring"></div>
+      <div class="content-area">
+        <div class="icon-wrap">
+          <img src="@/assets/Chat_Tongue.webp" alt="AI" class="ai-icon"/>
         </div>
-        <div class="text-content">
-          <h1 class="title">Welcome to embark on your AI tongue diagnosis journey 👋</h1>
-          <p class="subtitle">Click left{{ guideText }}<br>to obtain the analysis of tongue signs in traditional Chinese medicine</p>
-        </div>
+        <h1 class="title">{{ store.t('guideWelcome') }}</h1>
+        <p class="subtitle">{{ store.t('guideSubtitle').replace('{action}', guideText || store.t('guideActionNew')) }}</p>
       </div>
-      <div class="decorations">
-        <div class="circle c1"></div>
-        <div class="circle c2"></div>
-        <div class="circle c3"></div>
+      <div class="prompt-hint" v-if="guideText">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
+          <path d="M15 18L9 12L15 6" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+        </svg>
+        <span>{{ store.t('guidePrompt') }}</span>
       </div>
     </div>
-    <div v-if="showWelcome" class="right-prompt">
-      <div class="prompt-box">
-        <i class="fas fa-hand-point-left"></i>
-        <span>Click here to add or view the conversation</span>
-      </div>
-    </div>
-
   </div>
 </template>
 
 <style scoped>
-.main-container {
+.guide-container {
   position: relative;
   flex: 1;
   height: 100%;
   overflow: hidden;
 }
 
-.welcome-container {
+.welcome-screen {
   position: absolute;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  background: linear-gradient(135deg, #f0f9ff 0%, #fdf2ff 100%);
+  inset: 0;
+  background: #0d1117;
   display: flex;
+  flex-direction: column;
   justify-content: center;
   align-items: center;
   z-index: 100;
 }
 
-.content-wrapper {
+.glow-ring {
+  position: absolute;
+  width: 300px;
+  height: 300px;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(79, 142, 247, 0.08) 0%, transparent 70%);
+  animation: pulse-glow 4s ease-in-out infinite;
+}
+
+@keyframes pulse-glow {
+  0%, 100% { transform: scale(1); opacity: 0.5; }
+  50% { transform: scale(1.2); opacity: 1; }
+}
+
+.content-area {
   text-align: center;
   position: relative;
   z-index: 2;
 }
 
-.icon-box {
-  position: relative;
+.icon-wrap {
   margin-bottom: 2rem;
+  position: relative;
 }
 
-.fa-comment-medical {
-  font-size: 8rem;
-  color: #6366f1;
-  filter: drop-shadow(0 4px 6px rgba(79, 70, 229, 0.15));
-}
-
-.floating-icon {
+.ai-icon {
+  height: 18vh;
+  border-radius: 50%;
+  border: 3px solid rgba(99, 179, 237, 0.2);
+  box-shadow: 0 0 40px rgba(79, 142, 247, 0.15);
   animation: float 3s ease-in-out infinite;
 }
 
 @keyframes float {
-  0%, 100% {
-    transform: translateY(0);
-  }
-  50% {
-    transform: translateY(-20px);
-  }
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-16px); }
 }
 
 .title {
-  font-size: 2.5rem;
-  color: #1f2937;
-  margin-bottom: 1.5rem;
+  font-size: 2.2rem;
+  font-weight: 700;
+  color: #f0f4ff;
+  margin-bottom: 1rem;
 }
 
 .subtitle {
-  font-size: 1.25rem;
-  color: #4b5563;
-  line-height: 1.75rem;
+  font-size: 1.1rem;
+  color: rgba(224, 230, 240, 0.6);
+  line-height: 1.8;
+  white-space: pre-line;
 }
 
-.decorations .circle {
-  position: absolute;
-  border-radius: 50%;
-  filter: blur(40px);
-  opacity: 0.4;
-}
-
-.c1 {
-  width: 200px;
-  height: 200px;
-  background: #818cf8;
-  top: 20%;
-  left: 10%;
-}
-
-.c2 {
-  width: 300px;
-  height: 300px;
-  background: #f472b6;
-  bottom: 15%;
-  right: 10%;
-}
-
-.c3 {
-  width: 150px;
-  height: 150px;
-  background: #38bdf8;
-  top: 50%;
-  left: 30%;
-}
-
-.right-prompt {
+.prompt-hint {
   position: absolute;
   left: 2rem;
-  top: 10%;
-  transform: translateY(-50%);
+  top: 15%;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: rgba(16, 22, 42, 0.9);
+  border: 1px solid rgba(99, 179, 237, 0.15);
+  padding: 10px 16px;
+  border-radius: 10px;
+  color: #63b3ed;
+  font-size: 0.85rem;
+  animation: slide-hint 4s ease-out, shake-hint 2s ease-in-out 4s infinite;
   z-index: 101;
 }
 
-.prompt-box {
-  background: rgba(255, 255, 255, 0.95);
-  padding: 1rem 1.5rem;
-  border-radius: 1rem;
-  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  animation: slideIn 4s ease-out, hover-shake 2s ease-in-out infinite;;
+@keyframes slide-hint {
+  from { transform: translateX(100%); opacity: 0; }
+  to { transform: translateX(0); opacity: 1; }
+}
+
+@keyframes shake-hint {
+  0%, 100% { transform: translateX(0); }
+  25% { transform: translateX(4px); }
+  75% { transform: translateX(-4px); }
 }
 
 @media (max-width: 768px) {
-  .fa-comment-medical {
-    font-size: 5rem !important;
-  }
-
-  .title {
-    font-size: 1.8rem !important;
-  }
-
-  .guide-arrow {
-    display: none;
-  }
-
-  .right-prompt {
-    display: none;
-  }
+  .ai-icon { height: 14vh; }
+  .title { font-size: 1.6rem; }
+  .subtitle { font-size: 0.95rem; }
+  .prompt-hint { display: none; }
 }
 
-
-.guide-arrow {
-  position: absolute;
-  left: -80px;
-  top: 50%;
-  font-size: 3rem;
-  color: #f472b6;
-  animation: pulse 1.5s infinite;
-}
-
-@keyframes pulse {
-  0%, 100% {
-    opacity: 1;
-    transform: translateX(0);
-  }
-  50% {
-    opacity: 0.5;
-    transform: translateX(-10px);
-  }
-}
-
-@keyframes hover-shake {
-  0%, 100% {
-    transform: translateY(-50%) translateX(0);
-  }
-  25% {
-    transform: translateY(-50%) translateX(5px);
-  }
-  75% {
-    transform: translateY(-50%) translateX(-5px);
-  }
-}
-
-@keyframes slideIn {
-  from {
-    transform: translateY(-50%) translateX(100%);
-  }
-  to {
-    transform: translateY(-50%) translateX(0);
-  }
+@media (max-width: 480px) {
+  .title { font-size: 1.4rem; }
+  .ai-icon { height: 12vh; }
 }
 </style>

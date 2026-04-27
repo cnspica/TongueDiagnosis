@@ -122,7 +122,7 @@ class ResNetPredictor:
             [transforms.ToTensor(), transforms.Normalize(mean=[0.29, 0.22, 0.23], std=[0.34, 0.27, 0.28])])
         for p in range(len(path)):
             net = ResNet50(tasks[p], True).to(self.device)
-            net.load_state_dict(torch.load(path[p], map_location=self.device))
+            net.load_state_dict(torch.load(path[p], map_location=self.device, weights_only=False))
             net.eval()
             self.nets.append(net)
 

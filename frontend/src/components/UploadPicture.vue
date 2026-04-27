@@ -1,32 +1,24 @@
 <script setup lang="ts">
 import {UploadFilled} from '@element-plus/icons-vue'
-import axios from "axios";
 import {ElMessage} from 'element-plus'
 
 const emit = defineEmits(["success"])
 
-let e;
-let base64String = "";
-
 function PicOnLoad(file) {
-  e = file;
   const reader = new FileReader();
   reader.onload = function (event) {
-    base64String = event.target?.result as string;
+    const base64String = event.target?.result as string;
+    // FileReader 回调内数据已就绪，直接 emit，无需 setTimeout
+    emit("success", {success: true, base64: base64String, fileData: file.raw});
+  };
+  reader.onerror = function () {
+    ElMessage.error('文件读取失败，请重试');
   };
   reader.readAsDataURL(file.raw);
 }
 
 async function handleSuccess(event) {
-  if (!e || !e.raw) {
-    console.error("未找到要上传的文件");
-    return;
-  }
-
-  setTimeout(() => {
-    console.log("上传的文件：", e.raw);
-    emit("success", {success: true, base64: base64String, fileData: e.raw});
-  }, 600);
+  // 使用自定义 http-request 后由 PicOnLoad 处理
 }
 </script>
 
@@ -34,47 +26,59 @@ async function handleSuccess(event) {
   <el-upload
       class="upload-demo"
       drag
-      multiple
       :on-change="PicOnLoad"
       :http-request="handleSuccess"
       accept=".jpg,.jpeg,.png,.bmp"
       :show-file-list="false"
+      :limit="1"
   >
     <el-icon class="el-icon--upload">
       <upload-filled/>
     </el-icon>
     <div class="el-upload__text">
-      Drag the file here or<em> Click here to upload a photo </em>
+      将文件拖到此处，或<em>点击此处上传照片</em>
     </div>
   </el-upload>
 </template>
 
 <style scoped>
 .upload-demo {
-  width: 400px;
+  width: 100%;
+  max-width: 500px;
   height: 180px;
 }
 
 :deep(.el-upload-dragger) {
-  background-color: #f0f9ff;
-  border: 2px dashed #409eff;
+  background-color: rgba(15, 20, 35, 0.8) !important;
+  border: 2px dashed rgba(0, 212, 255, 0.3) !important;
   border-radius: 8px;
-  color: #333;
+  color: #e0e6f0;
   height: 100%;
   display: flex;
   flex-direction: column;
   justify-content: center;
   align-items: center;
+  transition: all 0.3s;
+}
+
+:deep(.el-upload-dragger:hover) {
+  border-color: rgba(0, 212, 255, 0.6) !important;
+  background-color: rgba(15, 20, 35, 0.95) !important;
 }
 
 :deep(.el-icon--upload) {
   font-size: 50px;
-  color: #409eff;
+  color: #00d4ff;
 }
 
 :deep(.el-upload__text) {
   font-size: 16px;
   font-weight: bold;
-  color: #606266;
+  color: rgba(224, 230, 240, 0.6);
+}
+
+:deep(.el-upload__text em) {
+  color: #00d4ff;
+  font-style: normal;
 }
 </style>

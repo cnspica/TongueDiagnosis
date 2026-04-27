@@ -1,9 +1,12 @@
 <script setup>
 import axios from "axios";
-import {ref, onMounted} from 'vue'
+import {ref, onMounted, onUnmounted, computed} from 'vue'
 
 const emit = defineEmits(["getRecord"])
 const props = defineProps(['isupstate'])
+
+// 图片 URL 基路径
+const imgBase = import.meta.env.DEV ? '' : ''
 const color = {
   [0]: "舌色：淡白舌",
   [1]: "舌色：淡红舌",
@@ -36,17 +39,16 @@ function reverseArray1(arr) {
 
 let rec = ref([0]);
 let isEmpty = ref(false)
+let pollTimer = null
 
 onMounted(function () {
-  axios.get("/user/record", {
+  axios.get("/api/user/record", {
     headers: {
       'Authorization': 'Bearer ' + localStorage.getItem('token')
     }
   }).then(res => {
     rec.value = res.data.data
-    console.log(rec.value)
-    if (Object.keys(rec.value).length !== 0) {
-      console.log('rec is not null')
+    if (rec.value && Object.keys(rec.value).length !== 0) {
       isEmpty.value = true
       reverseArray1(rec.value)
     }
@@ -55,79 +57,192 @@ onMounted(function () {
   })
 })
 
+// 轮询（替代原来的方式，增加清理逻辑）
 onMounted(function () {
-  const timer = window.setInterval(() => {
-    setTimeout(function () {
-      console.log(("开始轮询"))
-      console.log(props.isupstate)
-      if (props.isupstate === true || rec.value[0].state === 0) {
-        console.log(("开始轮询加上向后端发送请求"))
-        axios.get("/user/record", {
-          headers: {
-            'Authorization': 'Bearer ' + localStorage.getItem('token')
-          }
-        })
-            .then(function (res) {
-              console.log(res.data)
-              rec.value = res.data.data
+  pollTimer = window.setInterval(() => {
+    if (props.isupstate === true || (rec.value && rec.value[0] && rec.value[0].state === 0)) {
+      axios.get("/api/user/record", {
+        headers: {
+          'Authorization': 'Bearer ' + localStorage.getItem('token')
+        }
+      })
+          .then(function (res) {
+            rec.value = res.data.data
+            if (rec.value && rec.value.length > 0) {
               reverseArray1(rec.value)
-              console.log(rec.value)
-              console.log(rec.value[0].state)
               if (Object.keys(rec.value).length !== 0) {
-                console.log('rec is not null')
                 isEmpty.value = true
               }
-            })
-            .catch(function (error) {
-              console.log(error);
-            })
-            .then(res => {
-              if (rec.value[0].state !== 0 || rec.value === []) {
-                console.log("轮询停止")
+              if (rec.value[0].state !== 0) {
                 emit("getRecord", false)
               }
-            })
-      }
-    }, 0)
+            }
+          })
+          .catch(function (error) {
+            console.log(error);
+          })
+    }
   }, 2000)
-});
+})
+
+onUnmounted(() => {
+  if (pollTimer) {
+    clearInterval(pollTimer)
+    pollTimer = null
+  }
+})
 </script>
 
 <template>
-  <div class="card" v-for="item in rec" :key="rec.id" v-if="isEmpty === true">
-    <el-descriptions
-        title="Result"
-        direction="vertical"
-        :column="4"
-        :size="size"
-        border
-    >
-      <el-descriptions-item label="图片" width="450px">
-        <el-tag size="small"><a :href=item.img_src>click to view</a></el-tag>
-      </el-descriptions-item>
-      <el-descriptions-item label="检测结果" v-if="item.state === 0">
-        Please wait while the test is being conducted.
-      </el-descriptions-item>
-      <el-descriptions-item label="检测结果" v-if="item.state === 1">
-        {{ color[item.result.tongue_color] }}{{ outcolor[item.result.coating_color] }}{{ rot[item.result.rot_greasy] }}{{ thick[item.result.tongue_thickness] }}
-      </el-descriptions-item>
-      <el-descriptions-item label="检测结果" v-if="item.state === 201">
-        No tongue image was detected. Please re-upload a clear tongue image.
-      </el-descriptions-item>
-      <el-descriptions-item label="检测结果" v-if="item.state === 202">
-        There are multiple tongue images, please take new photos and upload them.
-      </el-descriptions-item>
-      <el-descriptions-item label="检测结果" v-if="item.state === 203">
-        The file type is incorrect. Please check and re-upload.
-      </el-descriptions-item>
-    </el-descriptions>
+  <div class="result-container">
+    <div class="record-card" v-for="item in rec" :key="item.id" v-if="isEmpty === true">
+      <div class="card-header">
+        <span class="card-icon">🔬</span>
+        <span class="card-title">诊断结果</span>
+      </div>
+      <div class="card-body">
+        <div class="result-row">
+          <span class="label">图片</span>
+          <a :href="'/' + item.img_src" class="img-link" target="_blank">点击查看舌象图片</a>
+        </div>
+        <div class="result-row" v-if="item.state === 0">
+          <span class="label">检测状态</span>
+          <span class="value processing">检测进行中，请稍候...</span>
+        </div>
+        <div class="result-row" v-if="item.state === 1 && item.result">
+          <span class="label">检测结果</span>
+          <span class="value success">
+            {{ color[item.result.tongue_color] }} · {{ outcolor[item.result.coating_color] }} · {{ rot[item.result.rot_greasy] }} · {{ thick[item.result.tongue_thickness] }}
+          </span>
+        </div>
+        <div class="result-row" v-if="item.state === 201">
+          <span class="label">检测状态</span>
+          <span class="value error">未检测到舌象图片，请重新上传清晰的舌象照片</span>
+        </div>
+        <div class="result-row" v-if="item.state === 202">
+          <span class="label">检测状态</span>
+          <span class="value error">检测到多张舌象图片，请重新拍摄上传</span>
+        </div>
+        <div class="result-row" v-if="item.state === 203">
+          <span class="label">检测状态</span>
+          <span class="value error">文件类型不正确，请检查后重新上传</span>
+        </div>
+      </div>
+    </div>
+    <div v-if="!isEmpty" class="empty-state">
+      <span class="empty-icon">📋</span>
+      <p>暂无检测记录</p>
+    </div>
   </div>
-  <div v-else><h1 class="nores">No test results yet.</h1></div>
 </template>
 
-<style>
-.nores {
-  text-align: center;
-  color: #00bd7e;
+<style scoped>
+.result-container {
+  padding: 16px;
+  max-width: 800px;
+  margin: 0 auto;
+}
+
+.record-card {
+  background: rgba(16, 22, 42, 0.8);
+  border: 1px solid rgba(99, 179, 237, 0.15);
+  border-radius: 12px;
+  margin-bottom: 14px;
+  overflow: hidden;
+  transition: all 0.2s ease;
+}
+
+.record-card:hover {
+  border-color: rgba(99, 179, 237, 0.3);
+}
+
+.card-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 14px 18px;
+  background: rgba(99, 179, 237, 0.05);
+  border-bottom: 1px solid rgba(99, 179, 237, 0.08);
+}
+
+.card-icon {
+  font-size: 18px;
+}
+
+.card-title {
+  font-size: 15px;
+  font-weight: 600;
+  color: #63b3ed;
+  letter-spacing: 1px;
+}
+
+.card-body {
+  padding: 14px 18px;
+}
+
+.result-row {
+  display: flex;
+  align-items: baseline;
+  gap: 12px;
+  padding: 8px 0;
+  border-bottom: 1px solid rgba(99, 179, 237, 0.05);
+}
+
+.result-row:last-child {
+  border-bottom: none;
+}
+
+.label {
+  font-size: 13px;
+  color: rgba(224, 230, 240, 0.5);
+  white-space: nowrap;
+  min-width: 70px;
+}
+
+.value {
+  font-size: 14px;
+  color: #e0e6f0;
+  line-height: 1.6;
+}
+
+.img-link {
+  color: #00d4ff;
+  text-decoration: underline;
+  font-size: 14px;
+  transition: color 0.2s;
+}
+
+.img-link:hover {
+  color: #4fe0ff;
+}
+
+.value.processing {
+  color: #f0b429;
+}
+
+.value.success {
+  color: #48bb78;
+}
+
+.value.error {
+  color: #ff6b6b;
+}
+
+.empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 60px 20px;
+  gap: 12px;
+}
+
+.empty-icon {
+  font-size: 36px;
+  opacity: 0.4;
+}
+
+.empty-state p {
+  font-size: 15px;
+  color: rgba(224, 230, 240, 0.4);
 }
 </style>

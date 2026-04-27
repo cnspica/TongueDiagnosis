@@ -9,7 +9,6 @@ declare module 'vue' {
   export interface GlobalComponents {
     DialogBox: typeof import('./src/components/mainPage/dialogBox.vue')['default']
     ElButton: typeof import('element-plus/es')['ElButton']
-    ElCard: typeof import('element-plus/es')['ElCard']
     ElCol: typeof import('element-plus/es')['ElCol']
     ElDropdown: typeof import('element-plus/es')['ElDropdown']
     ElDropdownItem: typeof import('element-plus/es')['ElDropdownItem']

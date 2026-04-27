@@ -1,5 +1,6 @@
 import {defineStore} from 'pinia';
 import settings from '../config/config.js';
+import {locales, getStoredLang, setStoredLang} from '../i18n/index.js';
 
 export const useStateStore = defineStore('state', {
     state: () => ({
@@ -7,14 +8,29 @@ export const useStateStore = defineStore('state', {
         userImagePath: "./static/userDefault.jpg",
         aiImagePath: "./static/aiDefault.jpg",
         audioType: 'D',
-        baseUrl: settings.ServerUrl + "/api/model/session",
+        baseUrl: "/api/model/session",
         chatHistory: [],
         infoHistory: [],
         isPlayed: false,
         gender: "male",
         personalPrompt: "",
         isShow: true,
+        // 国际化
+        lang: getStoredLang(),
     }),
+    getters: {
+        t: (state) => (key) => {
+            const messages = locales[state.lang] || locales['zh-CN'];
+            return messages[key] || key;
+        },
+        currentLang: (state) => state.lang,
+        isEn: (state) => state.lang === 'en',
+        isZh: (state) => state.lang === 'zh-CN',
+        aiLangDirective: (state) => {
+            const messages = locales[state.lang] || locales['zh-CN'];
+            return messages.aiLangDirective || '';
+        },
+    },
     actions: {
         setisOpenValue(newValue) {
             this.isOpenValue = newValue;
@@ -48,6 +64,14 @@ export const useStateStore = defineStore('state', {
         },
         setInfoHistory(newValue) {
             this.infoHistory = newValue;
+        },
+        setLang(lang) {
+            this.lang = lang;
+            setStoredLang(lang);
+        },
+        toggleLang() {
+            const newLang = this.lang === 'zh-CN' ? 'en' : 'zh-CN';
+            this.setLang(newLang);
         },
     },
 });

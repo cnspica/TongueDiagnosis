@@ -49,18 +49,28 @@ const emit = defineEmits(["back-id"])
 </script>
 
 <template>
-  <div class="back-ground">
-    <div class="common-layout">
-      <Main :receivedInput="sharedInput" ref="mainRef" @get-return="handleGetReturn" @back-id="backIdToCheck"/>
-      <Bottom @send-to-main="handleSendToMain" @send-picture="handleSendPicture" ref="dialogRef"/>
-    </div>
+  <div class="container-wrapper">
+    <Main :receivedInput="sharedInput" ref="mainRef" @get-return="handleGetReturn" @back-id="backIdToCheck"/>
+    <Bottom @send-to-main="handleSendToMain" @send-picture="handleSendPicture" ref="dialogRef"/>
   </div>
 </template>
 
 <style scoped>
-.back-ground {
-  height: 80vh;
-  background: linear-gradient(135deg, #4facfe, rgba(90, 224, 231, 0.9), #00d4a9, #00cba9);
-  background-size: 200% 200%;
+.container-wrapper {
+  display: flex;
+  flex-direction: column;
+  height: calc(100vh - 64px);
+  background: #0d1117;
+  overflow: hidden;
+  max-width: 960px;
+  margin: 0 auto;
+  width: 100%;
+}
+
+@media (max-width: 768px) {
+  .container-wrapper {
+    max-width: 100%;
+    height: calc(100vh - 64px);
+  }
 }
 </style>

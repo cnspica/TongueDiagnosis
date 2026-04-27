@@ -1,17 +1,82 @@
-venv
-.idea
-frontend/node_modules
-__pycache__
-frontend/public/tongue
-/application/net/weights/rot_and_greasy.pth
-/application/net/weights/thickness.pth
-/application/net/weights/tongue_coat_color.pth
-/application/net/weights/tongue_color.pth
-/application/net/weights/unet.pth
-/application/net/weights/yolov5.pt
-/application/net/weights/
-/node_modules
+# ==============================================================
+# Python
+# ==============================================================
+venv/
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+*.egg-info/
+dist/
+build/
+*.egg
+
+# ==============================================================
+# 环境变量 / 密钥（绝对不能提交！）
+# ==============================================================
+.env
+.env.local
+.env.*.local
+
+# ==============================================================
+# 数据库文件
+# ==============================================================
+*.db
+*.sqlite
+*.sqlite3
 AppDatabase.db
-*.db
-*.db
-*.db
+application/database.db
+
+# ==============================================================
+# 模型权重文件（体积过大，通过 Release 分发）
+# ==============================================================
+application/net/weights/rot_and_greasy.pth
+application/net/weights/thickness.pth
+application/net/weights/tongue_coat_color.pth
+application/net/weights/tongue_color.pth
+application/net/weights/unet.pth
+application/net/weights/yolov5.pt
+application/net/weights/sam_vit_b_01ec64.pth
+application/net/weights/
+
+# ==============================================================
+# 前端
+# ==============================================================
+frontend/node_modules/
+frontend/dist/
+frontend/.env
+frontend/.env.local
+frontend/.env.*.local
+
+# ==============================================================
+# 舌诊图片（用户数据，不入库）
+# ==============================================================
+frontend/public/tongue/
+
+# ==============================================================
+# IDE / 编辑器
+# ==============================================================
+.idea/
+.vscode/
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+
+# ==============================================================
+# 测试 / 调试辅助文件
+# ==============================================================
+_debug_*.py
+_test_*.py
+e2e_test.py
+backend_stdout*.log
+backend_stderr*.log
+*.log
+
+# ==============================================================
+# macOS / Windows
+# ==============================================================
+.DS_Store
+Thumbs.db

@@ -1,6 +1,6 @@
 export const settings = {
-    // ServerUrl: 'http://192.168.1.133:5000',
-    ServerUrl: 'http://10.252.133.135:5000'
+    // 优先使用环境变量，默认 localhost
+    ServerUrl: import.meta.env.VITE_API_URL || 'http://localhost:5000'
 };
 
 export default settings;

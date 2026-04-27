@@ -8,7 +8,7 @@ from typing import List
 class BaseResponse(BaseModel):
     code: int
     message: str
-    data: Union[dict, list] = None
+    data: Union[dict, list, None] = None
 
 
 class Token(BaseModel):
@@ -45,6 +45,7 @@ class Record(BaseModel):
     ID: int
     user_ID: int
     img_src: str
+    cropped_img_src: Optional[str] = None
     state: int = None
     result: Optional[Result] = None
 

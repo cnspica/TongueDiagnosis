@@ -6,7 +6,7 @@ from .database import Base
 class User(Base):
     __tablename__ = 'User'
     id = Column(Integer, primary_key=True)  # 自增主键
-    email = Column(String(255))
+    email = Column(String(255), unique=True, index=True)
     password = Column(String(255))
 
 
@@ -15,6 +15,7 @@ class TongueAnalysis(Base):
     id = Column(Integer, primary_key=True)
     user_id = Column(Integer, ForeignKey('User.id'))
     img_src = Column(String(255))
+    cropped_img_src = Column(String(255))
     state = Column(Integer)
     tongue_color = Column(Integer)
     coating_color = Column(Integer)

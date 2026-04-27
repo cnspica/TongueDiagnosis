@@ -11,7 +11,7 @@ import settings from './config/config.js'
 
 let token = localStorage.getItem('token');
 
-axios.defaults.baseURL = settings.ServerUrl + '/api';
+axios.defaults.baseURL = settings.ServerUrl;
 axios.defaults.headers = {
     Authorization: "Bearer " + token
 }
@@ -32,7 +32,7 @@ router.beforeEach((to, from, next) => {
             next();
         } else {
             next({
-                path: '/register'
+                path: '/login'
             });
         }
     } else {

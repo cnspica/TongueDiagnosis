@@ -9,9 +9,9 @@ let interval;
 
 const barColor = computed(() => {
   const percentage = remainingTime.value / totalTime;
-  if (percentage > 0.66) return '#ff0000';
-  if (percentage > 0.33) return '#ffcc00';
-  return '#4caf50';
+  if (percentage > 0.66) return '#ff6b6b';
+  if (percentage > 0.33) return '#f0b429';
+  return '#48bb78';
 });
 
 const startCountdown = () => {
@@ -37,8 +37,8 @@ defineExpose({startCountdown, resetCountdown})
 
 <template>
   <div class="countdown-container">
-    <svg width="300" height="180" viewBox="0 0 200 100" class="countdown-svg">>
-      <rect x="10" y="10" width="180" height="80" rx="15" ry="15" stroke="#ddd" fill="none" stroke-width="5"/>
+    <svg width="300" height="180" viewBox="0 0 200 100" class="countdown-svg">
+      <rect x="10" y="10" width="180" height="80" rx="15" ry="15" stroke="rgba(99,179,237,0.15)" fill="none" stroke-width="5"/>
       <rect
           x="10"
           y="10"
@@ -59,6 +59,7 @@ defineExpose({startCountdown, resetCountdown})
         }}s
       </text>
     </svg>
+    <p class="countdown-label">AI 正在分析舌象，请稍候...</p>
   </div>
 </template>
 
@@ -78,21 +79,12 @@ defineExpose({startCountdown, resetCountdown})
 .countdown-text {
   font-size: 18px;
   font-weight: bold;
-  fill: black;
+  fill: #e0e6f0;
 }
 
-.reset-button {
-  margin-top: 10px;
-  padding: 5px 10px;
-  font-size: 16px;
-  border: none;
-  background-color: #007bff;
-  color: white;
-  cursor: pointer;
-  border-radius: 5px;
-}
-
-.reset-button:hover {
-  background-color: #0056b3;
+.countdown-label {
+  margin-top: 8px;
+  font-size: 14px;
+  color: rgba(224, 230, 240, 0.5);
 }
 </style>

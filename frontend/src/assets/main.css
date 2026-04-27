@@ -1,36 +1,20 @@
 @import './base.css';
 
 #app {
-  /*max-width: 2200px;*/
   margin: 0 auto;
-  padding: 2rem;
+  padding: 0;
   font-weight: normal;
+  width: 100%;
+  overflow-x: hidden;
 }
 
-a,
-.green {
-  text-decoration: none;
-  color: hsla(160, 100%, 37%, 1);
-  transition: 0.4s;
-  padding: 3px;
+/* 覆盖 base.css 的浅色默认值，强制深色 */
+:root {
+  --color-background: #0a0e1a;
+  --color-background-soft: #0d1117;
+  --color-background-mute: #161b22;
+  --color-border: rgba(99, 179, 237, 0.1);
+  --color-border-hover: rgba(99, 179, 237, 0.2);
+  --color-heading: #f0f4ff;
+  --color-text: #e0e6f0;
 }
-
-@media (hover: hover) {
-  a:hover {
-    background-color: hsla(160, 100%, 37%, 0.2);
-  }
-}
-
-/*@media (min-width: 600px) {*/
-/*  body {*/
-/*    display: flex;*/
-/*    place-items: center;*/
-/*    place-items: center;*/
-/*  }*/
-
-/*  #app {*/
-/*    display: grid;*/
-/*    grid-template-columns: 1fr 1fr;*/
-/*    padding: 0 2rem;*/
-/*  }*/
-/*}*/

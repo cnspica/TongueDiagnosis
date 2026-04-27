@@ -21,7 +21,7 @@ def register(schema: schemas.UserRegister, db: Session = Depends(get_db)):
         response = schemas.RegisterResponse(code=code, message='operation failed')
     return response
 
-@router_user.put('/login', response_model=schemas.LoginResponse)
+@router_user.post('/login', response_model=schemas.LoginResponse)
 def login(form_data: Annotated[schemas.ExtendedOAuth2PasswordRequestForm, Depends()],
           db: Session = Depends(get_db)):
     email = form_data.email

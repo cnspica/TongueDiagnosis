@@ -1,42 +1,31 @@
 <template>
-  <div
-      class="draggable-container"
-      :style="{ top: `${position.y}px`, left: `${position.x}px`, position: 'absolute', transition: 'top 0.s ease, left 0.s ease' }"
-      ref="draggableContainer"
-  >
-    <div v-if="sendPic" class="upload-wrapper">
-      <el-icon class="arrow-left">
-        <ArrowRightBold/>
-      </el-icon>
+  <div class="input-bar" ref="draggableContainer">
+    <div v-if="sendPic" class="upload-area">
+      <el-icon class="arrow-deco arrow-l"><ArrowRightBold/></el-icon>
       <div v-if="isUploading">
         <Steps ref="stepRef"/>
       </div>
       <div v-else>
         <UploadPicture @success="startQuest" style="margin-top: 5px"/>
       </div>
-      <el-icon class="arrow-right">
-        <ArrowLeftBold/>
-      </el-icon>
+      <el-icon class="arrow-deco arrow-r"><ArrowLeftBold/></el-icon>
     </div>
-    <div class="drag-handle" @mousedown="startDrag" v-if="!sendPic">
-      <el-icon>
-        <Rank/>
-      </el-icon>
-    </div>
-    <input @keydown="handleKeyDown" class="message-input" v-model="inputValue" placeholder="Please enter here."
-           style="height: auto;" v-if="!sendPic">
-    <el-button type="success" :icon="Promotion" @click="sendToMain" size="large" style="font-size: 20px;" circle
-               v-if="!sendPic"/>
-    <el-button
-        :type="isRecording ? 'warning' : 'primary'"
-        :icon="isRecording ? CircleClose:Microphone"
-        @click="toggleVoiceRecognition"
-        size="large"
-        :loading="isLoading"
-        style="font-size: 20px;"
-        circle
-        v-if="!sendPic"
-    />
+    <template v-else>
+      <div class="drag-handle" @mousedown="startDrag">
+        <el-icon><Rank/></el-icon>
+      </div>
+      <input @keydown="handleKeyDown" class="msg-input" v-model="inputValue" :placeholder="store.t('inputPlaceholder')"/>
+      <el-button type="success" :icon="Promotion" @click="sendToMain" size="large" style="font-size: 18px;" circle/>
+      <el-button
+          :type="isRecording ? 'warning' : 'primary'"
+          :icon="isRecording ? CircleClose : Microphone"
+          @click="toggleVoiceRecognition"
+          size="large"
+          :loading="isLoading"
+          style="font-size: 18px;"
+          circle
+      />
+    </template>
   </div>
 </template>
 
@@ -49,7 +38,7 @@ import UploadPicture from '@/components/UploadPicture.vue';
 import Steps from "@/components/Steps.vue";
 import axios from "axios";
 
-const stateStore = useStateStore();
+const store = useStateStore();
 let sendPic = ref(true);
 let isUploading = ref(false);
 const stepRef = ref(null);
@@ -68,42 +57,25 @@ const result = ref("");
 
 let baseURL = '';
 onBeforeMount(() => {
-  if (stateStore.baseUrl == "0") {
-    ErrorPop("Please set an url", 5000)
+  if (store.baseUrl == "0") {
+    ErrorPop("请先设置服务地址", 5000)
   }
-  baseURL = stateStore.baseUrl;
+  baseURL = store.baseUrl;
 });
+
 let recognition = null;
 
 const tongueDictionary = {
-  color: [
-    "舌色：淡白舌,",
-    "舌色：淡红舌,",
-    "舌色：红舌,",
-    "舌色：绛舌,",
-    "舌色：青紫舌,"
-  ],
-  outcolor: [
-    "舌苔颜色：白苔,",
-    "舌苔颜色：黄苔,",
-    "舌苔颜色：灰黑苔,"
-  ],
-  rot: [
-    "舌苔腻,",
-    "舌苔腐,"
-  ],
-  thick: [
-    "舌头薄,",
-    "舌头厚,"
-  ]
+  color: ["舌色：淡白舌,", "舌色：淡红舌,", "舌色：红舌,", "舌色：绛舌,", "舌色：青紫舌,"],
+  outcolor: ["舌苔颜色：白苔,", "舌苔颜色：黄苔,", "舌苔颜色：灰黑苔,"],
+  rot: ["舌苔腻,", "舌苔腐,"],
+  thick: ["舌头薄,", "舌头厚,"]
 };
 
 async function getRecordData() {
   try {
-    const response = await axios.get('/user/record', {
-      headers: {
-        'Authorization': 'Bearer ' + localStorage.getItem('token')
-      }
+    const response = await axios.get('/api/user/record', {
+      headers: { 'Authorization': 'Bearer ' + localStorage.getItem('token') }
     });
     return response.data
   } catch (error) {
@@ -113,73 +85,40 @@ async function getRecordData() {
 }
 
 const toggleVoiceRecognition = () => {
-  if (isRecording.value) {
-    stopRecognition();
-  } else {
-    startRecognition();
-  }
+  if (isRecording.value) stopRecognition();
+  else startRecognition();
 };
 
-const resetLoading = () => {
-  stepRef.value.resetCountdown()
-}
+const resetLoading = () => { stepRef.value.resetCountdown() }
 
 if ('webkitSpeechRecognition' in window) {
   recognition = new webkitSpeechRecognition();
-  recognition.continuous = false; // 设为非连续模式
-  recognition.interimResults = false; // 只返回最终结果
-  recognition.lang = 'zh-CN'; // 设定语言为中文
-
-  recognition.onstart = () => {
-    isRecording.value = true;
-
-  };
-
-  recognition.onresult = (event) => {
-    inputValue.value += event.results[0][0].transcript;
-  };
-
-  recognition.onerror = (event) => {
-    ErrorPop('语音识别出错，请重试');
-  };
-
-  recognition.onend = () => {
-    isRecording.value = false;
-  };
+  recognition.continuous = false;
+  recognition.interimResults = false;
+  recognition.lang = 'zh-CN';
+  recognition.onstart = () => { isRecording.value = true; };
+  recognition.onresult = (event) => { inputValue.value += event.results[0][0].transcript; };
+  recognition.onerror = () => { ErrorPop(store.t('errorSpeech')); };
+  recognition.onend = () => { isRecording.value = false; };
 } else {
   console.warn('当前浏览器不支持语音识别');
 }
 
 const startRecognition = () => {
-
-  if (recognition) {
-    recognition.start();
-    console.log("开始语音识别")
-  } else {
-    ErrorPop('您的浏览器不支持语音识别');
-  }
+  if (recognition) recognition.start();
+  else ErrorPop(store.t('errorNoSpeech'));
 };
 
 const stopRecognition = () => {
-  if (recognition) {
-    console.log("停止语音识别")
-    recognition.stop();
-  }
+  if (recognition) recognition.stop();
 };
 
 let audioType = ref("De");
 
-interface Position {
-  x: number;
-  y: number;
-}
+interface Position { x: number; y: number; }
+interface Offset { x: number; y: number; }
 
-interface Offset {
-  x: number;
-  y: number;
-}
-
-const position = reactive<Position>({x: window.innerWidth - 850, y: window.innerHeight - 250}) // 初始位置
+const position = reactive<Position>({x: window.innerWidth - 850, y: window.innerHeight - 250})
 const offset = reactive<Offset>({x: 0, y: 0})
 let isDragging = ref<boolean>(false)
 const draggableContainer = ref<HTMLDivElement | null>(null)
@@ -209,28 +148,18 @@ const endDrag = (): void => {
 }
 
 const handleKeyDown = (event: KeyboardEvent) => {
-  if (event.key === 'Enter') {
-    sendToMain();
-  }
+  if (event.key === 'Enter') sendToMain();
 };
 
 const ErrorPop = (info: string, time = 3000) => {
-  ElMessage({
-    showClose: true,
-    message: info,
-    type: 'error',
-    duration: time
-  })
+  ElMessage({ showClose: true, message: info, type: 'error', duration: time })
 }
 
 let pic64 = ref("")
 
 const startQuest = async (info) => {
-  if (info.success) {
-    pic64.value = info.base64
-  }
-  console.log("开始");
-  emit("send-picture", {base64: pic64.value,fileData: info.fileData})
+  if (info.success) pic64.value = info.base64
+  emit("send-picture", {base64: pic64.value, fileData: info.fileData})
   startLoading();
 }
 
@@ -238,125 +167,91 @@ async function pollGetRecord(interval = 2000, startTime = Date.now()) {
   try {
     const responseData = await getRecordData();
     const data = responseData.data;
-
     if (data && data[data.length - 1].state === 1) {
-      const endTime = Date.now(); // 记录结束时间
-      const elapsedTime = (endTime - startTime) / 1000; // 计算总耗时（秒）
-
-      console.log("✅ 获取到符合条件的数据:", data[data.length - 1].result);
-      console.log(`🎯 轮询耗时: ${elapsedTime.toFixed(2)} 秒`);
       const result = data[data.length - 1].result
       let ans = ''
-
       ans += tongueDictionary.color[result.tongue_color]
       ans += tongueDictionary.outcolor[result.coating_color]
       ans += tongueDictionary.thick[result.tongue_thickness]
       ans += tongueDictionary.rot[result.rot_greasy]
-      console.log(ans)
       emit("send-picture", {base64: pic64.value, ans: ans})
       startChat();
-
-
       return data[data.length - 1].result;
     }
-
-    console.log("🔄 数据不符合条件，继续轮询...");
-    setTimeout(() => pollGetRecord(interval, startTime), interval); // 递归调用继续轮询
+    setTimeout(() => pollGetRecord(interval, startTime), interval);
   } catch (error) {
     console.error("❌ 轮询获取数据失败:", error);
-    setTimeout(() => pollGetRecord(interval, startTime), interval); // 发生错误时继续轮询
+    setTimeout(() => pollGetRecord(interval, startTime), interval);
   }
 }
 
-const backUploading = () => {
-  sendPic.value = true
-  isUploading.value = false
-}
+const backUploading = () => { sendPic.value = true; isUploading.value = false; }
+const startLoading = async () => { isUploading.value = true; await nextTick(); resetLoading(); }
+const startChat = () => { sendPic.value = false; isUploading.value = false; }
+const getReturn = (data) => { if (data.success) startChat(); else backUploading(); }
 
-const startLoading = async () => {
-  isUploading.value = true
-  await nextTick()
-  resetLoading();
-}
-
-const startChat = () => {
-  sendPic.value = false
-  isUploading.value = false
-}
-
-const getReturn = (data) => {
-  if (data.success) startChat()
-  else backUploading()
-}
 defineExpose({startChat, startLoading, backUploading, getReturn})
 </script>
 
 <style scoped>
-.draggable-container {
+.input-bar {
   display: flex;
   align-items: center;
-  width: 550px;
-  background-color: #f5f5f5;
-  border-radius: 30px;
-  padding: 10px;
-  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
-  border: 1px solid #ddd;
-  cursor: move;
-  transition: box-shadow 0.3s ease, transform 0.3s ease;
+  width: 100%;
+  max-width: 800px;
+  background: rgba(16, 22, 42, 0.9);
+  border: 1px solid rgba(99, 179, 237, 0.15);
+  border-radius: 24px;
+  padding: 8px 12px;
+  margin: 10px auto 16px;
+  transition: all 0.3s ease;
+}
+
+.input-bar:hover {
+  border-color: rgba(99, 179, 237, 0.3);
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+}
+
+.upload-area {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  width: 100%;
   justify-content: center;
 }
 
-.draggable-container:hover {
-  box-shadow: 0 8px 16px rgba(0, 0, 0, 0.2);
-  transform: translateY(-2px);
+.arrow-deco {
+  font-size: 20px;
+  color: rgba(99, 179, 237, 0.4);
 }
 
 .drag-handle {
-  margin-right: 10px;
+  margin-right: 8px;
   cursor: grab;
+  color: rgba(99, 179, 237, 0.4);
 }
 
-.drag-handle img {
-  width: 24px;
-  height: 24px;
-}
-
-.message-input {
+.msg-input {
   flex: 1;
   border: none;
-  padding: 10px;
+  padding: 10px 14px;
   outline: none;
-  border-radius: 20px;
-  font-size: 16px;
-  font-family: 'Roboto', sans-serif;
+  border-radius: 18px;
+  font-size: 15px;
+  background: transparent;
+  color: #e0e6f0;
   line-height: 1.5;
-  background-color: transparent;
 }
 
-.send-button svg {
-  fill: #000;
+.msg-input::placeholder {
+  color: rgba(224, 230, 240, 0.35);
 }
 
-.upload-wrapper {
-  display: flex;
-  align-items: center;
-  gap: 20px;
+@media (max-width: 768px) {
+  .input-bar {
+    max-width: 100%;
+    margin: 8px 12px 12px;
+    border-radius: 20px;
+  }
 }
-
-.arrow-left, .arrow-right {
-  font-size: 24px;
-  color: #409eff;
-  cursor: pointer;
-}
-
-.arrow-left:hover, .arrow-right:hover {
-  color: #66b1ff;
-}
-
-.input-container {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-}
-
 </style>
